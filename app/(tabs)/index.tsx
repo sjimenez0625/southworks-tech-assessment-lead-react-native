@@ -1,8 +1,9 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Logger } from '@/services/Logger';
 import { useGetFeedQuery, type FeedItem } from '@/store/api/feedApi';
 import { selectShowPromotionalBanner, toggleFlag } from '@/store/slices/featureFlagsSlice';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -10,6 +11,46 @@ export default function FeedScreen() {
   const { data: feedData, isLoading, isError, error } = useGetFeedQuery();
   const showBanner = useSelector(selectShowPromotionalBanner);
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    // Log screen view
+    Logger.logNavigation('FeedScreen');
+  }, []);
+
+  useEffect(() => {
+    // Log when data is loaded
+    if (feedData) {
+      Logger.info('Feed data loaded successfully', { 
+        itemCount: feedData.length 
+      });
+    }
+  }, [feedData]);
+
+  useEffect(() => {
+    // Log errors
+    if (isError && error) {
+      Logger.error('Failed to load feed data', error as Error, {
+        screen: 'FeedScreen',
+      });
+    }
+  }, [isError, error]);
+
+  const handleBannerToggle = () => {
+    const newState = !showBanner;
+    dispatch(toggleFlag('showPromotionalBanner'));
+    Logger.logEvent('banner_toggled', { 
+      action: newState ? 'shown' : 'hidden',
+      source: 'header_button'
+    });
+  };
+
+  const handleBannerClose = () => {
+    dispatch(toggleFlag('showPromotionalBanner'));
+    Logger.logEvent('banner_closed', { 
+      action: 'dismissed',
+      source: 'close_button'
+    });
+  };
 
   const renderItem = ({ item }: { item: FeedItem }) => (
     <ThemedView style={styles.card}>
@@ -65,7 +106,7 @@ export default function FeedScreen() {
           Feed
         </ThemedText>
         <Pressable 
-          onPress={() => dispatch(toggleFlag('showPromotionalBanner'))}
+          onPress={handleBannerToggle}
           style={styles.toggleButton}
         >
           <ThemedText style={styles.toggleButtonText}>
@@ -84,7 +125,7 @@ export default function FeedScreen() {
             </Text>
           </View>
           <Pressable 
-            onPress={() => dispatch(toggleFlag('showPromotionalBanner'))}
+            onPress={handleBannerClose}
             style={styles.bannerCloseButton}
           >
             <Text style={styles.bannerCloseText}>×</Text>

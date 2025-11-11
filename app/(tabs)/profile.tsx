@@ -1,11 +1,38 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Logger } from '@/services/Logger';
 import { useGetProfileQuery } from '@/store/api/profileApi';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 export default function ProfileScreen() {
   const { data: userData, isLoading, isError, error } = useGetProfileQuery();
+
+  useEffect(() => {
+    // Log screen view
+    Logger.logNavigation('ProfileScreen');
+  }, []);
+
+  useEffect(() => {
+    // Log when profile data is loaded
+    if (userData) {
+      Logger.info('Profile data loaded successfully', { 
+        userName: userData.name,
+        hasEmail: !!userData.email,
+      });
+      // Set user context in logger
+      Logger.setUser(userData.email);
+    }
+  }, [userData]);
+
+  useEffect(() => {
+    // Log errors
+    if (isError && error) {
+      Logger.error('Failed to load profile data', error as Error, {
+        screen: 'ProfileScreen',
+      });
+    }
+  }, [isError, error]);
 
   if (isLoading) {
     return (
